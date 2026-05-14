@@ -12,3 +12,7 @@ Icon?
 
 # macOS archive metadata
 __MACOSX/
+
+# Runtime data
+data/
+logs/
