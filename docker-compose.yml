@@ -1,5 +1,6 @@
 services:
   app:
+    container_name: gym
     build: .
     image: ghcr.io/abertagnon/gym-baize:latest
     ports:
