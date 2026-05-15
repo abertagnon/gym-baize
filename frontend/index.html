@@ -27,11 +27,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn-sm{padding:6px 12px;font-size:13px}.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important}
 .btn-logout svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .rule-actions svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.form-group{margin-bottom:16px}
+.form-group{margin-bottom:16px;min-width:0}
 .form-label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em}
-.form-input,.form-select{width:100%;padding:11px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:14px;transition:border-color var(--transition);outline:none}
+.form-input,.form-select{display:block;width:100%;min-width:0;padding:11px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:14px;transition:border-color var(--transition);outline:none}
 .form-input:focus,.form-select:focus{border-color:var(--border-focus)}.form-input::placeholder{color:var(--text-dim)}
 .form-select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238a8a96'%3E%3Cpath d='M6 8.5L1 3.5h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+input[type="date"].form-input,input[type="time"].form-input{-webkit-appearance:none;appearance:none;max-width:100%}
+input[type="date"].form-input::-webkit-date-and-time-value,input[type="time"].form-input::-webkit-date-and-time-value{text-align:left;min-width:0}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;transition:all var(--transition)}.card:hover{border-color:#3a3a44}
 .rule-card{display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;transition:all var(--transition)}.rule-card:hover{border-color:#3a3a44}
@@ -71,7 +73,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .alert-success{background:var(--success-bg);color:var(--success);border:1px solid rgba(52,211,153,0.2)}
 .alert-info{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(238,186,43,0.25)}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;backdrop-filter:blur(4px)}
-.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:460px;box-shadow:var(--shadow);animation:modalIn 0.2s ease;overflow-x:hidden}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:460px;min-width:0;box-shadow:var(--shadow);animation:modalIn 0.2s ease;overflow-x:hidden}
 @keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(8px)}}
 .modal-title{font-size:18px;font-weight:700;margin-bottom:20px;letter-spacing:-0.02em}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:24px}
@@ -659,7 +661,7 @@ function AdminTab() {
         <div className="rule-info"><div className="rule-course">{u.username}{u.is_admin && <span style={{fontSize:11,color:'var(--accent)',marginLeft:8}}>ADMIN</span>}</div>
           <div className="rule-schedule">{u.rules_count} regole · {u.has_shaggyowl ? 'Opus Gym ✓' : 'Opus Gym ✗'}</div></div>
         <div className="rule-actions"><button className={`rule-toggle ${u.is_active?'on':'off'}`} onClick={() => toggleUser(u.id)} />
-          {!u.is_admin && <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDeleteUser(u)} style={{color:'var(--error)'}}>✕</button>}</div>
+          {!u.is_admin && <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDeleteUser(u)} style={{color:'var(--error)'}}><XIcon /></button>}</div>
       </div>))}</div>
 
     {invites.length > 0 && <><div className="section-header"><div className="section-title" style={{fontSize:14}}>Codici invito</div></div>
@@ -667,7 +669,7 @@ function AdminTab() {
         <code style={{flex:1,color:inv.is_valid?'var(--accent)':'var(--text-dim)'}}>{inv.code}</code>
         {inv.is_used && <span style={{fontSize:12,color:'var(--text-muted)'}}>→ {inv.used_by_username}</span>}
         <span className={`invite-status ${inv.is_valid?'valid':inv.is_used?'used':'expired'}`}>{inv.is_valid?'Attivo':inv.is_used?'Usato':'Scaduto'}</span>
-        {inv.is_valid && <button className="btn btn-ghost btn-sm" onClick={() => setConfirmRevoke(inv)} style={{color:'var(--error)',padding:'4px 8px'}} title="Revoca">✕</button>}
+        {inv.is_valid && <button className="btn btn-ghost btn-sm" onClick={() => setConfirmRevoke(inv)} style={{color:'var(--error)',padding:'4px 8px'}} title="Revoca"><XIcon /></button>}
       </div>))}</>}
 
     {confirmRevoke && <ConfirmModal title="Revoca codice" message={`Vuoi revocare il codice "${confirmRevoke.code}"? Non potrà più essere usato per registrarsi.`}
