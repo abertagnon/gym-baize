@@ -214,6 +214,8 @@ async def list_date_rules(user: User = Depends(get_current_user), db: Session = 
 
 @router.post("/date-rules", response_model=DateRuleResponse, status_code=201)
 async def create_date_rule(data: DateRuleCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if data.course_date < date.today():
+        raise HTTPException(status_code=400, detail="La data non può essere nel passato")
     course_date = data.course_date.isoformat()
     _ensure_no_date_rule_duplicate(db, user.id, data.course_name, course_date, data.start_time)
 
@@ -239,6 +241,8 @@ async def update_date_rule(
     next_course_name = payload.get("course_name", rule.course_name)
     next_course_date = payload.get("course_date", date.fromisoformat(rule.course_date)).isoformat()
     next_start_time = payload.get("start_time", rule.start_time)
+    if date.fromisoformat(next_course_date) < date.today():
+        raise HTTPException(status_code=400, detail="La data non può essere nel passato")
     _ensure_no_date_rule_duplicate(
         db, user.id, next_course_name, next_course_date, next_start_time, exclude_id=rule.id,
     )

@@ -1,8 +1,7 @@
 """Gestione sessioni ShaggyOwl persistenti per la durata della sessione web.
 
 Mantiene un pool di sessioni ShaggyOwl in memoria, una per utente.
-Le sessioni vengono create al login delle credenziali e distrutte al logout dall'app.
-Il task schedulato NON usa questo pool — fa login/logout indipendenti.
+Le sessioni vengono create al login e riusate sia dal frontend che dallo scheduler.
 """
 
 import asyncio
@@ -32,8 +31,21 @@ async def get_session(user_id: int, shaggyowl_email: str, shaggyowl_password_enc
     await client.seleziona_sede(session)
     log.info(f"[user:{user_id}] Sessione ShaggyOwl creata — {session.nome_utente}")
 
+    # Double-check: un'altra coroutine potrebbe aver già creato la sessione mentre eravamo in rete
+    duplicate_client = None
+    duplicate_session = None
     async with _lock:
-        _sessions[user_id] = (session, client, datetime.now(timezone.utc))
+        if user_id in _sessions:
+            duplicate_client, duplicate_session = client, session
+            session, client, _ = _sessions[user_id]
+        else:
+            _sessions[user_id] = (session, client, datetime.now(timezone.utc))
+
+    if duplicate_client is not None:
+        try:
+            await duplicate_client.logout(duplicate_session)
+        except Exception:
+            pass
 
     return session, client
 

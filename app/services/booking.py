@@ -1,8 +1,8 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-from app.core.shaggyowl import ShaggyOwlClient, ShaggyOwlError
-from app.core.security import decrypt_credential
+from app.core.shaggyowl import ShaggyOwlError
+from app.core.session_manager import get_session
 from app.models import User, BookingRule, BookingLog, BookingDateRule, BookingRuleBlackout
 from app.config import settings
 
@@ -63,73 +63,66 @@ async def process_user(user: User, db: Session) -> int:
         return 0
 
     blackouts = list(user.rule_blackouts)
-
-    client = ShaggyOwlClient()
     booked = 0
 
     try:
-        password = decrypt_credential(user.shaggyowl_password_encrypted)
-        session = await client.login(user.shaggyowl_email, password)
-        await client.seleziona_sede(session)
-        log.info(f"[{user.username}] Login OK")
+        session, client = await get_session(user.id, user.shaggyowl_email, user.shaggyowl_password_encrypted)
+        log.info(f"[{user.username}] Sessione OK")
     except Exception as e:
         log.error(f"[{user.username}] Login fallito: {e}")
         _log_entry(db, user.id, "LOGIN", datetime.now().strftime("%Y-%m-%d"), "--:--", "failed", str(e))
         return 0
 
-    try:
-        oggi = datetime.now(timezone.utc).date()
-        # Scansiona fino allo stesso giorno della settimana successiva (8 giorni)
-        giorni_da_controllare = 8
-        for delta in range(giorni_da_controllare):
-            giorno = oggi + timedelta(days=delta)
-            giorno_str = giorno.strftime("%Y-%m-%d")
-            weekday = giorno.weekday()
+    oggi = datetime.now(timezone.utc).date()
+    # Scansiona fino allo stesso giorno della settimana successiva (8 giorni)
+    giorni_da_controllare = 8
+    for delta in range(giorni_da_controllare):
+        giorno = oggi + timedelta(days=delta)
+        giorno_str = giorno.strftime("%Y-%m-%d")
+        weekday = giorno.weekday()
 
-            if any(_is_blackout(giorno_str, blackout) for blackout in blackouts):
-                log.info(f"  [{user.username}] {giorno_str} — regole sospese")
+        if any(_is_blackout(giorno_str, blackout) for blackout in blackouts):
+            log.info(f"  [{user.username}] {giorno_str} — regole sospese")
+            continue
+
+        rules_today = [r for r in active_rules if r.day_of_week == weekday]
+        date_rules_today = [r for r in active_date_rules if r.course_date == giorno_str]
+        if not rules_today and not date_rules_today:
+            continue
+
+        try:
+            orari = await client.get_palinsesto(session, giorno_str)
+        except ShaggyOwlError as e:
+            log.error(f"[{user.username}] Palinsesto {giorno_str}: {e}")
+            continue
+
+        for orario in orari:
+            matching_rules = [r for r in rules_today if _match(orario, weekday, r)]
+            matching_rules.extend(r for r in date_rules_today if _match_date_rule(orario, r))
+            if not matching_rules:
                 continue
 
-            rules_today = [r for r in active_rules if r.day_of_week == weekday]
-            date_rules_today = [r for r in active_date_rules if r.course_date == giorno_str]
-            if not rules_today and not date_rules_today:
+            corso = orario["nome_corso"]
+            ora = orario["orario_inizio"]
+            join_waitlist = any(r.join_waitlist for r in matching_rules)
+            bookable, reason = _is_bookable(orario, join_waitlist)
+
+            if reason == "already_booked":
+                log.info(f"  [{user.username}] {giorno_str} {corso} {ora} — già prenotato")
+                continue
+            if not bookable:
+                log.info(f"  [{user.username}] {giorno_str} {corso} {ora} — {reason}")
+                _log_entry(db, user.id, corso, giorno_str, ora, "no_spots", reason)
                 continue
 
             try:
-                orari = await client.get_palinsesto(session, giorno_str)
+                result = await client.prenota(session, giorno_str, orario["id_orario_palinsesto"])
+                msg = result.get("messaggio", "OK")
+                log.info(f"  [{user.username}] ✅ {giorno_str} {corso} {ora} — {msg}")
+                _log_entry(db, user.id, corso, giorno_str, ora, "success", msg)
+                booked += 1
             except ShaggyOwlError as e:
-                log.error(f"[{user.username}] Palinsesto {giorno_str}: {e}")
-                continue
-
-            for orario in orari:
-                matching_rules = [r for r in rules_today if _match(orario, weekday, r)]
-                matching_rules.extend(r for r in date_rules_today if _match_date_rule(orario, r))
-                if not matching_rules:
-                    continue
-
-                corso = orario["nome_corso"]
-                ora = orario["orario_inizio"]
-                join_waitlist = any(r.join_waitlist for r in matching_rules)
-                bookable, reason = _is_bookable(orario, join_waitlist)
-
-                if reason == "already_booked":
-                    log.info(f"  [{user.username}] {giorno_str} {corso} {ora} — già prenotato")
-                    continue
-                if not bookable:
-                    log.info(f"  [{user.username}] {giorno_str} {corso} {ora} — {reason}")
-                    _log_entry(db, user.id, corso, giorno_str, ora, "no_spots", reason)
-                    continue
-
-                try:
-                    result = await client.prenota(session, giorno_str, orario["id_orario_palinsesto"])
-                    msg = result.get("messaggio", "OK")
-                    log.info(f"  [{user.username}] ✅ {giorno_str} {corso} {ora} — {msg}")
-                    _log_entry(db, user.id, corso, giorno_str, ora, "success", msg)
-                    booked += 1
-                except ShaggyOwlError as e:
-                    log.error(f"  [{user.username}] ❌ {giorno_str} {corso} {ora} — {e}")
-                    _log_entry(db, user.id, corso, giorno_str, ora, "failed", str(e))
-    finally:
-        await client.logout(session)
+                log.error(f"  [{user.username}] ❌ {giorno_str} {corso} {ora} — {e}")
+                _log_entry(db, user.id, corso, giorno_str, ora, "failed", str(e))
 
     return booked

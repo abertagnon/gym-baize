@@ -1,13 +1,15 @@
 """Auth: login con username, registrazione con codice invito."""
 
 import re
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, InviteCode
-from app.core.security import hash_password, verify_password, create_access_token, decode_access_token
+from app.core.security import hash_password, verify_password, create_access_token, decode_access_token, blacklist_token
+from app.core.rate_limit import check_rate_limit
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -68,7 +70,9 @@ async def bootstrap(req: LoginRequest, db: Session = Depends(get_db)):
 # ─── Registrazione con codice invito ────────────────────────────────────────
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
-async def register(req: RegisterRequest, db: Session = Depends(get_db)):
+async def register(request: Request, req: RegisterRequest, db: Session = Depends(get_db)):
+    if not check_rate_limit(f"register:{request.client.host}", max_requests=5, window_seconds=60):
+        raise HTTPException(status_code=429, detail="Troppi tentativi. Riprova tra un minuto.")
     # Valida codice invito
     invite = db.query(InviteCode).filter(InviteCode.code == req.invite_code).first()
     if not invite:
@@ -97,7 +101,9 @@ async def register(req: RegisterRequest, db: Session = Depends(get_db)):
 # ─── Login ──────────────────────────────────────────────────────────────────
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest, db: Session = Depends(get_db)):
+async def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
+    if not check_rate_limit(f"login:{request.client.host}", max_requests=10, window_seconds=60):
+        raise HTTPException(status_code=429, detail="Troppi tentativi. Riprova tra un minuto.")
     user = db.query(User).filter(User.username == req.username).first()
     if not user or not verify_password(req.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Credenziali non valide")
@@ -120,9 +126,13 @@ async def logout_endpoint(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
     db: Session = Depends(get_db),
 ):
-    """Chiude la sessione ShaggyOwl dell'utente."""
     payload = decode_access_token(credentials.credentials)
     if payload:
+        jti = payload.get("jti")
+        if jti:
+            exp = payload.get("exp")
+            expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else datetime.now(timezone.utc)
+            blacklist_token(jti, expires_at)
         user_id = int(payload["sub"])
         from app.core.session_manager import close_session
         await close_session(user_id)
