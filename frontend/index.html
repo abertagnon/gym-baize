@@ -335,18 +335,53 @@ function formatDateLabel(value) {
   catch { return value; }
 }
 
-function DateRuleModal({ onClose, onSaved, existing }) {
-  const [course, setCourse] = useState(existing?.course_name || '');
+function DateRuleModal({ onClose, onSaved, existing, courseOptions }) {
+  const hasPalinsesto = courseOptions && courseOptions.length > 0;
+  const [ruleTab, setRuleTab] = useState(existing ? 'manual' : 'guided');
+
+  // Guided state
+  const [selCourse, setSelCourse] = useState('');
+  const [selTime, setSelTime] = useState('');
+
+  // Manual state
+  const [manCourse, setManCourse] = useState(existing?.course_name || '');
+  const [manTime, setManTime] = useState(existing?.start_time || '19:00');
+
   const [courseDate, setCourseDate] = useState(existing?.course_date || todayIso());
-  const [time, setTime] = useState(existing?.start_time || '19:00');
   const [waitlist, setWaitlist] = useState(existing?.join_waitlist || false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  const isGuided = ruleTab === 'guided' && hasPalinsesto;
+
+  // Giorno della settimana della data scelta (0=Lun … 6=Dom, come Python weekday)
+  const dow = courseDate ? (new Date(`${courseDate}T00:00:00`).getDay() + 6) % 7 : -1;
+  const filteredOptions = dow >= 0 ? courseOptions.filter(o => o.day_of_week === dow) : [];
+  const courseNames = [...new Set(filteredOptions.map(o => o.course_name))].sort();
+  const timesForCourse = selCourse
+    ? [...new Set(filteredOptions.filter(o => o.course_name === selCourse).map(o => o.start_time))].sort()
+    : [];
+
+  const chooseCourse = (name) => {
+    setSelCourse(name);
+    const times = [...new Set(filteredOptions.filter(o => o.course_name === name).map(o => o.start_time))].sort();
+    setSelTime(times.length === 1 ? times[0] : '');
+  };
+
+  // Reset selezione corso/orario se cambia data e il corso non è più disponibile quel giorno
+  useEffect(() => {
+    if (!isGuided) return;
+    setSelCourse(''); setSelTime('');
+  }, [dow]);
+
+  const finalCourse = isGuided ? selCourse : manCourse;
+  const finalTime = isGuided ? selTime : manTime;
+  const canSave = finalCourse && courseDate && finalTime;
+
   const save = async () => {
     setError(''); setBusy(true);
     try {
-      const body = { course_name: course, course_date: courseDate, start_time: time, join_waitlist: waitlist, is_active: existing?.is_active ?? true };
+      const body = { course_name: finalCourse, course_date: courseDate, start_time: finalTime, join_waitlist: waitlist, is_active: existing?.is_active ?? true };
       if (existing) await API.put(`/api/rules/date-rules/${existing.id}`, body);
       else await API.post('/api/rules/date-rules', body);
       onSaved();
@@ -356,18 +391,51 @@ function DateRuleModal({ onClose, onSaved, existing }) {
   return (<div className="modal-backdrop" onClick={onClose}><div className="modal" onClick={e => e.stopPropagation()}>
     <div className="modal-title">{existing ? 'Modifica prenotazione giornaliera' : 'Nuova prenotazione giornaliera'}</div>
     <Alert type="error">{error}</Alert>
+
+    {hasPalinsesto && <div className="mini-tabs">
+      <button className={`mini-tab ${ruleTab==='guided'?'active':''}`} onClick={() => setRuleTab('guided')}>Dal palinsesto</button>
+      <button className={`mini-tab ${ruleTab==='manual'?'active':''}`} onClick={() => setRuleTab('manual')}>Manuale</button>
+    </div>}
+
     <div className="form-group"><label className="form-label">Data</label>
       <input className="form-input" type="date" value={courseDate} onChange={e => setCourseDate(e.target.value)} /></div>
-    <div className="form-group"><label className="form-label">Corso</label>
-      <input className="form-input" value={course} onChange={e => setCourse(e.target.value)} placeholder="Nome del corso" /></div>
-    <div className="form-group"><label className="form-label">Orario</label>
-      <input className="form-input" type="time" value={time} onChange={e => setTime(e.target.value)} /></div>
+
+    {isGuided ? <>
+      {courseNames.length === 0 && (
+        <div className="alert alert-info">Nessun corso in palinsesto per {GIORNI[dow] || 'questo giorno'}. Usa la modalità Manuale.</div>
+      )}
+      {courseNames.length > 0 && <>
+        <div className="form-group"><label className="form-label">Corso</label>
+          <select className="form-select" value={selCourse} onChange={e => chooseCourse(e.target.value)}>
+            <option value="">— Seleziona un corso —</option>
+            {courseNames.map(n => <option key={n} value={n}>{n}</option>)}
+          </select></div>
+        {selCourse && timesForCourse.length > 1 && (
+          <div className="form-group"><label className="form-label">Orario</label>
+            <select className="form-select" value={selTime} onChange={e => setSelTime(e.target.value)}>
+              <option value="">— Seleziona l'orario —</option>
+              {timesForCourse.map(t => <option key={t} value={t}>{t}</option>)}
+            </select></div>
+        )}
+        {selCourse && timesForCourse.length === 1 && (
+          <div className="form-group"><label className="form-label">Orario</label>
+            <div style={{padding:'11px 14px',background:'var(--bg-input)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',fontSize:14,fontFamily:'var(--mono)',color:'var(--text)'}}>{timesForCourse[0]}</div>
+          </div>
+        )}
+      </>}
+    </> : <>
+      <div className="form-group"><label className="form-label">Corso</label>
+        <input className="form-input" value={manCourse} onChange={e => setManCourse(e.target.value)} placeholder="Nome del corso" /></div>
+      <div className="form-group"><label className="form-label">Orario</label>
+        <input className="form-input" type="time" value={manTime} onChange={e => setManTime(e.target.value)} /></div>
+    </>}
+
     <div className="form-group" style={{display:'flex',alignItems:'center',gap:10}}>
       <button className={`rule-toggle ${waitlist?'on':'off'}`} onClick={() => setWaitlist(!waitlist)} />
       <span style={{fontSize:13,color:'var(--text-muted)'}}>Mettiti in coda se non ci sono posti</span>
     </div>
     <div className="modal-actions"><button className="btn btn-secondary" onClick={onClose}>Annulla</button>
-    <button className="btn btn-primary" onClick={save} disabled={busy || !course || !courseDate || !time}>{busy ? <Spinner /> : 'Salva'}</button></div>
+    <button className="btn btn-primary" onClick={save} disabled={busy || !canSave}>{busy ? <Spinner /> : 'Salva'}</button></div>
   </div></div>);
 }
 
@@ -498,7 +566,7 @@ function RulesTab() {
       onSaved={() => { setShowCreds(false); refreshProfile(); setMsg('Credenziali salvate!'); setTimeout(() => setMsg(''), 3000); }} />}
     {showRule && <RuleModal existing={showRule === 'new' ? null : showRule} courseOptions={courseOptions}
       onClose={() => setShowRule(null)} onSaved={() => { setShowRule(null); loadRules(); setMsg('Regola salvata!'); setTimeout(() => setMsg(''), 3000); }} />}
-    {showDateRule && <DateRuleModal existing={showDateRule === 'new' ? null : showDateRule}
+    {showDateRule && <DateRuleModal existing={showDateRule === 'new' ? null : showDateRule} courseOptions={courseOptions}
       onClose={() => setShowDateRule(null)} onSaved={() => { setShowDateRule(null); loadRules(); setMsg('Prenotazione giornaliera salvata!'); setTimeout(() => setMsg(''), 3000); }} />}
     {showBlackout && <BlackoutModal existing={showBlackout === 'new' ? null : showBlackout}
       onClose={() => setShowBlackout(null)} onSaved={() => { setShowBlackout(null); loadRules(); setMsg('Sospensione salvata!'); setTimeout(() => setMsg(''), 3000); }} />}
