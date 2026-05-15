@@ -12,7 +12,7 @@
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0c0c0e;--bg-card:#16161a;--bg-card-hover:#1c1c22;--bg-input:#1e1e24;--border:#2a2a32;--border-focus:#eeba2b;--text:#e8e6e3;--text-muted:#8a8a96;--text-dim:#5a5a66;--accent:#eeba2b;--accent-glow:rgba(238,186,43,0.15);--accent-hover:#f5cc4d;--accent-text:#1a1a1a;--success:#34d399;--success-bg:rgba(52,211,153,0.1);--error:#f87171;--error-bg:rgba(248,113,113,0.1);--warning:#fbbf24;--warning-bg:rgba(251,191,36,0.1);--radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.2);--font:'DM Sans',-apple-system,sans-serif;--mono:'JetBrains Mono',monospace;--transition:0.2s cubic-bezier(0.4,0,0.2,1)}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 .app-shell{max-width:720px;margin:0 auto;padding:24px 16px}
 .header{display:flex;align-items:center;justify-content:space-between;padding:16px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px}
@@ -97,7 +97,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .mini-tab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font);transition:all var(--transition)}
 .mini-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .mini-tab:not(.active):hover{color:var(--text)}
-@media(max-width:600px){.app-shell{padding:16px 12px}.form-row{grid-template-columns:1fr}.header h1{font-size:17px}.nav-tab{font-size:12px;padding:8px 10px}}
+@media(max-width:600px){.app-shell{padding:16px 12px}.form-row{grid-template-columns:1fr}.header h1{font-size:17px}.nav-tab{font-size:12px;padding:8px 10px}.form-input,.form-select{font-size:16px}input[type="date"],input[type="time"]{min-width:0;max-width:100%;width:100%}.rule-actions .btn-ghost{padding:11px 14px;font-size:17px;min-width:44px;min-height:44px;justify-content:center}}
 </style>
 </head>
 <body>
