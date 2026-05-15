@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpusGym Auto-Booker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0c0c0e;--bg-card:#16161a;--bg-card-hover:#1c1c22;--bg-input:#1e1e24;--border:#2a2a32;--border-focus:#eeba2b;--text:#e8e6e3;--text-muted:#8a8a96;--text-dim:#5a5a66;--accent:#eeba2b;--accent-glow:rgba(238,186,43,0.15);--accent-hover:#f5cc4d;--accent-text:#1a1a1a;--success:#34d399;--success-bg:rgba(52,211,153,0.1);--error:#f87171;--error-bg:rgba(248,113,113,0.1);--warning:#fbbf24;--warning-bg:rgba(251,191,36,0.1);--radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 16px rgba(0,0,0,0.2);--font:'DM Sans',-apple-system,sans-serif;--mono:'JetBrains Mono',monospace;--transition:0.2s cubic-bezier(0.4,0,0.2,1)}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.app-shell{max-width:720px;margin:0 auto;padding:24px 16px}
+.header{display:flex;align-items:center;justify-content:space-between;padding:16px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px}
+.header h1{font-size:20px;font-weight:700;letter-spacing:-0.02em}.header h1 span{color:var(--accent)}
+.header-actions{display:flex;gap:8px;align-items:center}
+.user-badge{font-size:12px;color:var(--text-muted);background:var(--bg-card);padding:6px 12px;border-radius:20px;border:1px solid var(--border)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;transition:all var(--transition);letter-spacing:-0.01em}
+.btn-primary{background:var(--accent);color:var(--accent-text)}.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px)}
+.btn-secondary{background:var(--bg-input);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--text-muted)}
+.btn-ghost{background:transparent;color:var(--text-muted);padding:8px 12px}.btn-ghost:hover{color:var(--text)}
+.btn-danger{background:var(--error-bg);color:var(--error);border:1px solid rgba(248,113,113,0.2)}.btn-danger:hover{background:rgba(248,113,113,0.2)}
+.btn-sm{padding:6px 12px;font-size:13px}.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important}
+.btn-logout svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em}
+.form-input,.form-select{width:100%;padding:11px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:14px;transition:border-color var(--transition);outline:none}
+.form-input:focus,.form-select:focus{border-color:var(--border-focus)}.form-input::placeholder{color:var(--text-dim)}
+.form-select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238a8a96'%3E%3Cpath d='M6 8.5L1 3.5h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;transition:all var(--transition)}.card:hover{border-color:#3a3a44}
+.rule-card{display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;transition:all var(--transition)}.rule-card:hover{border-color:#3a3a44}
+.rule-color{width:4px;height:40px;border-radius:2px;flex-shrink:0}.rule-info{flex:1}.rule-course{font-size:15px;font-weight:600}
+.rule-schedule{font-size:13px;color:var(--text-muted);margin-top:2px;font-family:var(--mono)}
+.rule-actions{display:flex;gap:4px;align-items:center}
+.rule-toggle{width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;position:relative;transition:background var(--transition)}
+.rule-toggle.on{background:var(--accent)}.rule-toggle.off{background:var(--border)}
+.rule-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;transition:left var(--transition)}
+.rule-toggle.on::after{left:21px}.rule-toggle.off::after{left:3px}
+.rule-badge{font-size:11px;padding:3px 8px;border-radius:4px;font-weight:500;font-family:var(--mono)}.rule-badge.waitlist{background:var(--warning-bg);color:var(--warning)}.rule-badge.expired{background:rgba(138,138,150,0.1);color:var(--text-muted)}
+.log-entry{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(42,42,50,0.5)}.log-entry:last-child{border-bottom:none}
+.log-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;margin-top:2px}
+.log-icon.success{background:var(--success-bg);color:var(--success)}.log-icon.failed{background:var(--error-bg);color:var(--error)}
+.log-icon.no_spots{background:var(--warning-bg);color:var(--warning)}.log-icon.skipped,.log-icon.already_booked{background:rgba(138,138,150,0.1);color:var(--text-muted)}
+.log-info{flex:1}.log-course{font-size:14px;font-weight:500}.log-detail{font-size:12px;color:var(--text-muted);margin-top:2px}
+.log-time{font-size:11px;color:var(--text-dim);font-family:var(--mono);white-space:nowrap;margin-top:4px}
+.schedule-day{margin-bottom:24px}
+.schedule-day-title{font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.schedule-slot{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:4px;cursor:pointer;transition:background var(--transition)}
+.schedule-slot:hover{background:var(--bg-card-hover)}
+.schedule-slot-color{width:3px;height:28px;border-radius:2px;flex-shrink:0}
+.schedule-slot-time{font-family:var(--mono);font-size:13px;color:var(--text-muted);width:100px;flex-shrink:0}
+.schedule-slot-name{font-size:14px;font-weight:500;flex:1}.schedule-slot-status{font-size:12px;color:var(--text-muted)}
+.schedule-slot.booked .schedule-slot-status{color:var(--success)}.schedule-slot.full .schedule-slot-status{color:var(--error)}
+.nav-tabs{display:flex;gap:2px;background:var(--bg-card);border-radius:var(--radius);padding:4px;margin-bottom:24px;border:1px solid var(--border)}
+.nav-tab{flex:1;padding:10px 16px;border:none;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all var(--transition);background:transparent;color:var(--text-muted)}
+.nav-tab.active{background:var(--accent);color:var(--accent-text)}.nav-tab:not(.active):hover{color:var(--text)}
+.auth-page{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.auth-card{width:100%;max-width:400px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:36px}
+.auth-title{font-size:24px;font-weight:700;margin-bottom:4px;letter-spacing:-0.03em}
+.auth-subtitle{color:var(--text-muted);font-size:14px;margin-bottom:28px}
+.auth-switch{text-align:center;margin-top:20px;font-size:13px;color:var(--text-muted)}
+.auth-switch a{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600}.auth-switch a:hover{text-decoration:underline}
+.alert{padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:16px;font-size:13px;font-weight:500}
+.alert-error{background:var(--error-bg);color:var(--error);border:1px solid rgba(248,113,113,0.2)}
+.alert-success{background:var(--success-bg);color:var(--success);border:1px solid rgba(52,211,153,0.2)}
+.alert-info{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(238,186,43,0.25)}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;backdrop-filter:blur(4px)}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:460px;box-shadow:var(--shadow);animation:modalIn 0.2s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(8px)}}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px;letter-spacing:-0.02em}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:24px}
+.modal-body-text{font-size:14px;color:var(--text-muted);line-height:1.5}
+.empty-state{text-align:center;padding:48px 24px;color:var(--text-muted)}.empty-state-icon{font-size:40px;margin-bottom:12px;opacity:0.5}.empty-state-text{font-size:14px}
+.section-empty{text-align:center;padding:28px 16px;margin-bottom:8px;color:var(--text-muted);border:1px dashed var(--border);border-radius:var(--radius-sm);background:rgba(255,255,255,0.01)}
+.section-empty-icon{font-size:28px;margin-bottom:8px;opacity:0.55}.section-empty-text{font-size:13px}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:16px;font-weight:700;letter-spacing:-0.02em}
+.subsection-header{display:flex;align-items:center;justify-content:space-between;margin:24px 0 10px}
+.subsection-title{font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em}
+.setup-banner{background:linear-gradient(135deg,var(--accent-glow),rgba(238,186,43,0.05));border:1px solid rgba(238,186,43,0.25);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.setup-banner h3{font-size:15px;font-weight:600;margin-bottom:6px}.setup-banner p{font-size:13px;color:var(--text-muted);margin-bottom:14px}
+.invite-code-box{background:var(--bg-input);border:2px dashed var(--accent);border-radius:var(--radius-sm);padding:16px;text-align:center;margin:12px 0}
+.invite-code-box code{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent);letter-spacing:0.1em}
+.invite-code-box .expire{font-size:12px;color:var(--text-muted);margin-top:6px}
+.invite-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:4px;background:var(--bg-card);border:1px solid var(--border)}
+.invite-item code{font-family:var(--mono);font-size:14px;font-weight:600}
+.invite-status{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600}
+.invite-status.valid{background:var(--success-bg);color:var(--success)}.invite-status.used{background:rgba(138,138,150,0.1);color:var(--text-muted)}.invite-status.expired{background:var(--error-bg);color:var(--error)}
+.mini-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)}
+.mini-tab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font);transition:all var(--transition)}
+.mini-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.mini-tab:not(.active):hover{color:var(--text)}
+@media(max-width:600px){.app-shell{padding:16px 12px}.form-row{grid-template-columns:1fr}.header h1{font-size:17px}.nav-tab{font-size:12px;padding:8px 10px}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, createContext, useContext } = React;
+
+function LogoutIcon() {
+  return <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+}
+
+function ConfirmModal({ title, message, confirmLabel, confirmDanger, onConfirm, onCancel }) {
+  return (<div className="modal-backdrop" onClick={onCancel}><div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth:400}}>
+    <div className="modal-title">{title || 'Conferma'}</div><div className="modal-body-text">{message}</div>
+    <div className="modal-actions"><button className="btn btn-secondary btn-sm" onClick={onCancel}>Annulla</button>
+    <button className={`btn ${confirmDanger ? 'btn-danger' : 'btn-primary'} btn-sm`} onClick={onConfirm}>{confirmLabel || 'Conferma'}</button></div>
+  </div></div>);
+}
+
+const API = {
+  token: null,
+  setToken(t) { this.token = t; if (t) sessionStorage.setItem('token', t); else sessionStorage.removeItem('token'); },
+  getToken() { if (!this.token) this.token = sessionStorage.getItem('token'); return this.token; },
+  async request(method, path, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    const t = this.getToken(); if (t) headers['Authorization'] = `Bearer ${t}`;
+    const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    if (res.status === 204) return null;
+    const text = await res.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { detail: text }; }
+    if (!res.ok) throw new Error(data.detail || 'Errore sconosciuto');
+    return data;
+  },
+  get: (p) => API.request('GET', p), post: (p, b) => API.request('POST', p, b),
+  put: (p, b) => API.request('PUT', p, b), del: (p) => API.request('DELETE', p),
+};
+
+const AuthContext = createContext();
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [needsBootstrap, setNeedsBootstrap] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      const token = API.getToken();
+      if (token) {
+        try { setUser(await API.get('/api/rules/profile')); } catch { API.setToken(null); }
+      }
+      try { const h = await API.get('/api/health'); setNeedsBootstrap(h.needs_bootstrap); } catch {}
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  const login = async (username, password) => { const r = await API.post('/api/auth/login', { username, password }); API.setToken(r.access_token); setUser(r.user); setNeedsBootstrap(false); };
+  const bootstrap = async (username, password) => { const r = await API.post('/api/auth/bootstrap', { username, password }); API.setToken(r.access_token); setUser(r.user); setNeedsBootstrap(false); };
+  const register = async (username, password, invite_code) => { const r = await API.post('/api/auth/register', { username, password, invite_code }); API.setToken(r.access_token); setUser(r.user); };
+  const logout = async () => { try { await API.post('/api/auth/logout'); } catch {} API.setToken(null); setUser(null); };
+  const refreshProfile = async () => { setUser(await API.get('/api/rules/profile')); };
+  return (<AuthContext.Provider value={{ user, loading, needsBootstrap, login, bootstrap, register, logout, refreshProfile }}>{children}</AuthContext.Provider>);
+}
+
+const GIORNI = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+const LOG_ICONS = { success:'✓', failed:'✗', no_spots:'—', skipped:'·', already_booked:'◦' };
+function Alert({ type, children }) { if (!children) return null; return <div className={`alert alert-${type}`}>{children}</div>; }
+function Spinner() { return <span className="spinner" />; }
+
+// ─── Auth Page ──────────────────────────────────────────────────────────────
+
+function AuthPage() {
+  const { login, bootstrap, register, needsBootstrap } = useContext(AuthContext);
+  const [mode, setMode] = useState(needsBootstrap ? 'bootstrap' : 'login');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => { if (needsBootstrap) setMode('bootstrap'); }, [needsBootstrap]);
+
+  const handleSubmit = async () => {
+    setError(''); setBusy(true);
+    try {
+      if (mode === 'bootstrap') await bootstrap(username, password);
+      else if (mode === 'register') await register(username, password, inviteCode);
+      else await login(username, password);
+    } catch (e) { setError(e.message); } setBusy(false);
+  };
+  const onKey = e => { if (e.key === 'Enter') handleSubmit(); };
+
+  const titles = { login:'Bentornato', register:'Registrati', bootstrap:'Benvenuto' };
+  const subtitles = { login:'Accedi con il tuo username', register:'Usa il codice invito ricevuto dall\'admin', bootstrap:'Crea il primo account amministratore' };
+
+  return (
+    <div className="auth-page"><div className="auth-card">
+      <div className="auth-title">{titles[mode]}<span style={{color:'var(--accent)'}}>.</span></div>
+      <div className="auth-subtitle">{subtitles[mode]}</div>
+      <Alert type="error">{error}</Alert>
+      {mode === 'register' && <div className="form-group"><label className="form-label">Codice invito</label>
+        <input className="form-input" placeholder="Inserisci il codice" value={inviteCode}
+          onChange={e => setInviteCode(e.target.value.toUpperCase())} onKeyDown={onKey}
+          style={{fontFamily:'var(--mono)',letterSpacing:'0.05em',textTransform:'uppercase'}} /></div>}
+      <div className="form-group"><label className="form-label">Username</label>
+        <input className="form-input" placeholder="solo lettere e numeri, minuscolo" value={username}
+          onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g,''))} onKeyDown={onKey} autoComplete="username" /></div>
+      <div className="form-group"><label className="form-label">Password</label>
+        <input className="form-input" type="password" placeholder="Min. 8 caratteri" value={password}
+          onChange={e => setPassword(e.target.value)} onKeyDown={onKey} autoComplete={mode==='login'?'current-password':'new-password'} /></div>
+      <button className="btn btn-primary" style={{width:'100%',marginTop:8}} onClick={handleSubmit} disabled={busy}>
+        {busy ? <Spinner /> : mode==='login' ? 'Accedi' : mode==='register' ? 'Registrati' : 'Crea admin'}</button>
+      {!needsBootstrap && <div className="auth-switch">
+        {mode === 'login' ? <>Hai un codice invito? <a onClick={() => { setMode('register'); setError(''); }}>Registrati</a></>
+        : <>Hai già un account? <a onClick={() => { setMode('login'); setError(''); }}>Accedi</a></>}
+      </div>}
+    </div></div>
+  );
+}
+
+function CredentialsModal({ onClose, onSaved }) {
+  const { user } = useContext(AuthContext);
+  const [email, setEmail] = useState(user?.shaggyowl_email || '');
+  const [pass, setPass] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const save = async () => { setError(''); setBusy(true); try { await API.put('/api/rules/shaggyowl-credentials', { shaggyowl_email: email, shaggyowl_password: pass }); onSaved(); } catch (e) { setError(e.message); } setBusy(false); };
+  return (<div className="modal-backdrop" onClick={onClose}><div className="modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-title">Credenziali Opus Gym</div>
+    <p style={{fontSize:13,color:'var(--text-muted)',marginBottom:20}}>Le credenziali dell'app Opus Gym. Vengono crittografate prima di essere salvate.</p>
+    <Alert type="error">{error}</Alert>
+    <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="La mail con cui accedi all'app" /></div>
+    <div className="form-group"><label className="form-label">Password</label><input className="form-input" type="password" value={pass} onChange={e => setPass(e.target.value)} placeholder="La password dell'app" /></div>
+    <div className="modal-actions"><button className="btn btn-secondary" onClick={onClose}>Annulla</button>
+    <button className="btn btn-primary" onClick={save} disabled={busy || !email || !pass}>{busy ? <Spinner /> : 'Salva'}</button></div>
+  </div></div>);
+}
+
+// ─── Rule Modal with Guided + Manual tabs ───────────────────────────────────
+
+function RuleModal({ onClose, onSaved, existing, courseOptions }) {
+  const [ruleTab, setRuleTab] = useState('guided');
+  // Guided state
+  const [selCourse, setSelCourse] = useState(existing?.course_name || '');
+  const [selDay, setSelDay] = useState(existing?.day_of_week ?? -1);
+  const [selTime, setSelTime] = useState(existing?.start_time || '');
+  // Manual state
+  const [manCourse, setManCourse] = useState(existing?.course_name || '');
+  const [manDay, setManDay] = useState(existing?.day_of_week ?? 0);
+  const [manTime, setManTime] = useState(existing?.start_time || '19:00');
+
+  const [waitlist, setWaitlist] = useState(existing?.join_waitlist || false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  // Derived options for guided mode
+  const courseNames = [...new Set(courseOptions.map(o => o.course_name))].sort();
+  const daysForCourse = selCourse ? [...new Set(courseOptions.filter(o => o.course_name === selCourse).map(o => o.day_of_week))].sort() : [];
+  const timesForCourseDay = (selCourse && selDay >= 0) ? [...new Set(courseOptions.filter(o => o.course_name === selCourse && o.day_of_week === selDay).map(o => o.start_time))].sort() : [];
+
+  // Reset downstream when upstream changes
+  const chooseCourse = (c) => { setSelCourse(c); setSelDay(-1); setSelTime(''); };
+  const chooseDay = (d) => { setSelDay(parseInt(d)); setSelTime(''); };
+
+  const isGuided = ruleTab === 'guided';
+  const finalCourse = isGuided ? selCourse : manCourse;
+  const finalDay = isGuided ? selDay : parseInt(manDay);
+  const finalTime = isGuided ? selTime : manTime;
+  const canSave = finalCourse && finalDay >= 0 && finalTime;
+
+  const save = async () => {
+    setError(''); setBusy(true);
+    try {
+      const body = { course_name: finalCourse, day_of_week: finalDay, start_time: finalTime, join_waitlist: waitlist, is_active: true };
+      if (existing) await API.put(`/api/rules/${existing.id}`, body);
+      else await API.post('/api/rules/', body);
+      onSaved();
+    } catch (e) { setError(e.message); } setBusy(false);
+  };
+
+  return (<div className="modal-backdrop" onClick={onClose}><div className="modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-title">{existing ? 'Modifica regola' : 'Nuova regola'}</div>
+    <Alert type="error">{error}</Alert>
+
+    {courseOptions.length > 0 && <div className="mini-tabs">
+      <button className={`mini-tab ${ruleTab==='guided'?'active':''}`} onClick={() => setRuleTab('guided')}>Dal palinsesto</button>
+      <button className={`mini-tab ${ruleTab==='manual'?'active':''}`} onClick={() => setRuleTab('manual')}>Manuale</button>
+    </div>}
+
+    {(isGuided && courseOptions.length > 0) ? <>
+      <div className="form-group"><label className="form-label">Corso</label>
+        <select className="form-select" value={selCourse} onChange={e => chooseCourse(e.target.value)}>
+          <option value="">— Seleziona un corso —</option>
+          {courseNames.map(n => <option key={n} value={n}>{n}</option>)}
+        </select></div>
+
+      {selCourse && <div className="form-group"><label className="form-label">Giorno</label>
+        <select className="form-select" value={selDay} onChange={e => chooseDay(e.target.value)}>
+          <option value={-1}>— Seleziona il giorno —</option>
+          {daysForCourse.map(d => <option key={d} value={d}>{GIORNI[d]}</option>)}
+        </select></div>}
+
+      {selDay >= 0 && <div className="form-group"><label className="form-label">Orario</label>
+        <select className="form-select" value={selTime} onChange={e => setSelTime(e.target.value)}>
+          <option value="">— Seleziona l'orario —</option>
+          {timesForCourseDay.map(t => <option key={t} value={t}>{t}</option>)}
+        </select></div>}
+    </> : <>
+      <div className="form-group"><label className="form-label">Corso</label>
+        <input className="form-input" value={manCourse} onChange={e => setManCourse(e.target.value)} placeholder="Nome del corso" /></div>
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Giorno</label>
+          <select className="form-select" value={manDay} onChange={e => setManDay(e.target.value)}>
+            {GIORNI.map((g,i) => <option key={i} value={i}>{g}</option>)}</select></div>
+        <div className="form-group"><label className="form-label">Orario</label>
+          <input className="form-input" type="time" value={manTime} onChange={e => setManTime(e.target.value)} /></div>
+      </div>
+    </>}
+
+    <div className="form-group" style={{display:'flex',alignItems:'center',gap:10}}>
+      <button className={`rule-toggle ${waitlist?'on':'off'}`} onClick={() => setWaitlist(!waitlist)} />
+      <span style={{fontSize:13,color:'var(--text-muted)'}}>Mettiti in coda se non ci sono posti</span>
+    </div>
+    <div className="modal-actions"><button className="btn btn-secondary" onClick={onClose}>Annulla</button>
+    <button className="btn btn-primary" onClick={save} disabled={busy || !canSave}>{busy ? <Spinner /> : 'Salva'}</button></div>
+  </div></div>);
+}
+
+function todayIso() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+function formatDateLabel(value) {
+  try { return new Date(`${value}T00:00:00`).toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' }); }
+  catch { return value; }
+}
+
+function DateRuleModal({ onClose, onSaved, existing }) {
+  const [course, setCourse] = useState(existing?.course_name || '');
+  const [courseDate, setCourseDate] = useState(existing?.course_date || todayIso());
+  const [time, setTime] = useState(existing?.start_time || '19:00');
+  const [waitlist, setWaitlist] = useState(existing?.join_waitlist || false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    setError(''); setBusy(true);
+    try {
+      const body = { course_name: course, course_date: courseDate, start_time: time, join_waitlist: waitlist, is_active: existing?.is_active ?? true };
+      if (existing) await API.put(`/api/rules/date-rules/${existing.id}`, body);
+      else await API.post('/api/rules/date-rules', body);
+      onSaved();
+    } catch (e) { setError(e.message); } setBusy(false);
+  };
+
+  return (<div className="modal-backdrop" onClick={onClose}><div className="modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-title">{existing ? 'Modifica prenotazione giornaliera' : 'Nuova prenotazione giornaliera'}</div>
+    <Alert type="error">{error}</Alert>
+    <div className="form-group"><label className="form-label">Data</label>
+      <input className="form-input" type="date" value={courseDate} onChange={e => setCourseDate(e.target.value)} /></div>
+    <div className="form-group"><label className="form-label">Corso</label>
+      <input className="form-input" value={course} onChange={e => setCourse(e.target.value)} placeholder="Nome del corso" /></div>
+    <div className="form-group"><label className="form-label">Orario</label>
+      <input className="form-input" type="time" value={time} onChange={e => setTime(e.target.value)} /></div>
+    <div className="form-group" style={{display:'flex',alignItems:'center',gap:10}}>
+      <button className={`rule-toggle ${waitlist?'on':'off'}`} onClick={() => setWaitlist(!waitlist)} />
+      <span style={{fontSize:13,color:'var(--text-muted)'}}>Mettiti in coda se non ci sono posti</span>
+    </div>
+    <div className="modal-actions"><button className="btn btn-secondary" onClick={onClose}>Annulla</button>
+    <button className="btn btn-primary" onClick={save} disabled={busy || !course || !courseDate || !time}>{busy ? <Spinner /> : 'Salva'}</button></div>
+  </div></div>);
+}
+
+function BlackoutModal({ onClose, onSaved, existing }) {
+  const [startDate, setStartDate] = useState(existing?.start_date || todayIso());
+  const [endDate, setEndDate] = useState(existing?.end_date || existing?.start_date || todayIso());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    setError(''); setBusy(true);
+    try {
+      const body = { start_date: startDate, end_date: endDate };
+      if (existing) await API.put(`/api/rules/blackouts/${existing.id}`, body);
+      else await API.post('/api/rules/blackouts', body);
+      onSaved();
+    } catch (e) { setError(e.message); } setBusy(false);
+  };
+
+  return (<div className="modal-backdrop" onClick={onClose}><div className="modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-title">{existing ? 'Modifica sospensione' : 'Nuova sospensione'}</div>
+    <Alert type="error">{error}</Alert>
+    <div className="form-row">
+      <div className="form-group"><label className="form-label">Dal</label>
+        <input className="form-input" type="date" value={startDate} onChange={e => { setStartDate(e.target.value); if (endDate < e.target.value) setEndDate(e.target.value); }} /></div>
+      <div className="form-group"><label className="form-label">Al</label>
+        <input className="form-input" type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} /></div>
+    </div>
+    <div className="modal-actions"><button className="btn btn-secondary" onClick={onClose}>Annulla</button>
+    <button className="btn btn-primary" onClick={save} disabled={busy || !startDate || !endDate}>{busy ? <Spinner /> : 'Salva'}</button></div>
+  </div></div>);
+}
+
+// ─── Rules Tab ──────────────────────────────────────────────────────────────
+
+function RulesTab() {
+  const { user, refreshProfile } = useContext(AuthContext);
+  const [rules, setRules] = useState([]); const [dateRules, setDateRules] = useState([]); const [blackouts, setBlackouts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreds, setShowCreds] = useState(false); const [showRule, setShowRule] = useState(null); const [showDateRule, setShowDateRule] = useState(null); const [showBlackout, setShowBlackout] = useState(null);
+  const [msg, setMsg] = useState(''); const [confirmDelete, setConfirmDelete] = useState(null);
+  const [courseOptions, setCourseOptions] = useState([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+
+  const loadRules = useCallback(async () => {
+    try {
+      const [recurring, daily, suspensions] = await Promise.all([
+        API.get('/api/rules/'), API.get('/api/rules/date-rules'), API.get('/api/rules/blackouts'),
+      ]);
+      setRules(recurring); setDateRules(daily); setBlackouts(suspensions);
+    } catch {} setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (user?.has_shaggyowl && courseOptions.length === 0 && !loadingOptions) {
+      setLoadingOptions(true);
+      API.get('/api/courses/options').then(o => setCourseOptions(o)).catch(() => {}).finally(() => setLoadingOptions(false));
+    }
+  }, [user]);
+
+  useEffect(() => { loadRules(); }, [loadRules]);
+
+  const toggleRule = async r => { await API.put(`/api/rules/${r.id}`, { is_active: !r.is_active }); loadRules(); };
+  const toggleDateRule = async r => { await API.put(`/api/rules/date-rules/${r.id}`, { is_active: !r.is_active }); loadRules(); };
+  const executeDelete = async () => {
+    if (!confirmDelete) return;
+    if (confirmDelete.type === 'rule') await API.del(`/api/rules/${confirmDelete.item.id}`);
+    if (confirmDelete.type === 'dateRule') await API.del(`/api/rules/date-rules/${confirmDelete.item.id}`);
+    if (confirmDelete.type === 'blackout') await API.del(`/api/rules/blackouts/${confirmDelete.item.id}`);
+    setConfirmDelete(null); loadRules();
+  };
+  if (loading) return <div style={{textAlign:'center',padding:40}}><Spinner /></div>;
+  const needsCreds = !user?.has_shaggyowl;
+
+  return (<div>
+    {needsCreds && <div className="setup-banner"><h3>⚡ Configura le credenziali</h3>
+      <p>Per prenotare automaticamente, inserisci le credenziali dell'app Opus Gym.</p>
+      <button className="btn btn-primary btn-sm" onClick={() => setShowCreds(true)}>Configura ora</button></div>}
+    {msg && <Alert type="success">{msg}</Alert>}
+    <div className="section-header"><div className="section-title">Le tue regole</div>
+      <div style={{display:'flex',gap:8}}>
+        {!needsCreds && <button className="btn btn-ghost btn-sm" onClick={() => setShowCreds(true)}>⚙ Credenziali</button>}</div></div>
+    {needsCreds ? <div className="empty-state"><div className="empty-state-icon">🔑</div><div className="empty-state-text">Configura prima le credenziali Opus Gym per poter aggiungere regole.</div></div>
+    : null}
+
+    {!needsCreds && <div className="subsection-header"><div className="subsection-title">Regole ricorrenti</div>
+      <button className="btn btn-primary btn-sm" onClick={() => setShowRule('new')}>+ Aggiungi</button></div>}
+    {!needsCreds && rules.length === 0 && <div className="section-empty"><div className="section-empty-icon">📋</div><div className="section-empty-text">Nessuna regola ricorrente configurata.</div></div>}
+    {!needsCreds && rules.map(r => (
+      <div key={r.id} className="rule-card">
+        <div className="rule-color" style={{background: r.is_active ? 'var(--accent)' : 'var(--border)'}} />
+        <div className="rule-info"><div className="rule-course">{r.course_name}</div>
+          <div className="rule-schedule">{r.day_name} · {r.start_time}{r.join_waitlist && <span className="rule-badge waitlist" style={{marginLeft:8}}>+ coda</span>}</div></div>
+        <div className="rule-actions">
+          <button className={`rule-toggle ${r.is_active?'on':'off'}`} onClick={() => toggleRule(r)} />
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowRule(r)}>✎</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete({type:'rule',item:r})} style={{color:'var(--error)'}}>✕</button></div>
+      </div>))}
+
+    {!needsCreds && <div className="subsection-header"><div className="subsection-title">Prenotazioni giornaliere</div>
+      <button className="btn btn-primary btn-sm" onClick={() => setShowDateRule('new')}>+ Aggiungi</button></div>}
+    {!needsCreds && dateRules.length === 0 && <div className="section-empty"><div className="section-empty-icon">📅</div><div className="section-empty-text">Nessuna prenotazione giornaliera configurata.</div></div>}
+    {!needsCreds && dateRules.map(r => (
+      <div key={r.id} className="rule-card">
+        <div className="rule-color" style={{background: r.expired ? 'var(--border)' : r.is_active ? 'var(--success)' : 'var(--border)'}} />
+        <div className="rule-info"><div className="rule-course">{r.course_name}</div>
+          <div className="rule-schedule">{formatDateLabel(r.course_date)} · {r.start_time}{r.join_waitlist && <span className="rule-badge waitlist" style={{marginLeft:8}}>+ coda</span>}{r.expired && <span className="rule-badge expired" style={{marginLeft:8}}>scaduta</span>}</div></div>
+        <div className="rule-actions">
+          <button className={`rule-toggle ${r.is_active&&!r.expired?'on':'off'}`} onClick={() => toggleDateRule(r)} disabled={r.expired} />
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowDateRule(r)}>✎</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete({type:'dateRule',item:r})} style={{color:'var(--error)'}}>✕</button></div>
+      </div>))}
+
+    {!needsCreds && <div className="subsection-header"><div className="subsection-title">Sospensioni</div>
+      <button className="btn btn-primary btn-sm" onClick={() => setShowBlackout('new')}>+ Aggiungi</button></div>}
+    {!needsCreds && blackouts.length === 0 && <div className="section-empty"><div className="section-empty-icon">🏖️</div><div className="section-empty-text">Nessun periodo di sospensione configurato.</div></div>}
+    {!needsCreds && blackouts.map(b => (
+      <div key={b.id} className="rule-card">
+        <div className="rule-color" style={{background:'var(--warning)'}} />
+        <div className="rule-info"><div className="rule-course">Regole sospese</div>
+          <div className="rule-schedule">{formatDateLabel(b.start_date)} · {formatDateLabel(b.end_date)}</div></div>
+        <div className="rule-actions">
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowBlackout(b)}>✎</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete({type:'blackout',item:b})} style={{color:'var(--error)'}}>✕</button></div>
+      </div>))}
+
+    {showCreds && <CredentialsModal onClose={() => setShowCreds(false)}
+      onSaved={() => { setShowCreds(false); refreshProfile(); setMsg('Credenziali salvate!'); setTimeout(() => setMsg(''), 3000); }} />}
+    {showRule && <RuleModal existing={showRule === 'new' ? null : showRule} courseOptions={courseOptions}
+      onClose={() => setShowRule(null)} onSaved={() => { setShowRule(null); loadRules(); setMsg('Regola salvata!'); setTimeout(() => setMsg(''), 3000); }} />}
+    {showDateRule && <DateRuleModal existing={showDateRule === 'new' ? null : showDateRule}
+      onClose={() => setShowDateRule(null)} onSaved={() => { setShowDateRule(null); loadRules(); setMsg('Prenotazione giornaliera salvata!'); setTimeout(() => setMsg(''), 3000); }} />}
+    {showBlackout && <BlackoutModal existing={showBlackout === 'new' ? null : showBlackout}
+      onClose={() => setShowBlackout(null)} onSaved={() => { setShowBlackout(null); loadRules(); setMsg('Sospensione salvata!'); setTimeout(() => setMsg(''), 3000); }} />}
+    {confirmDelete && <ConfirmModal title="Elimina" message="Vuoi eliminare questo elemento?"
+      confirmLabel="Elimina" confirmDanger onConfirm={executeDelete} onCancel={() => setConfirmDelete(null)} />}
+  </div>);
+}
+
+// ─── Schedule Tab ───────────────────────────────────────────────────────────
+
+function ScheduleTab() {
+  const { user } = useContext(AuthContext);
+  const [days, setDays] = useState([]); const [loading, setLoading] = useState(true);
+  const formatDate = d => {
+    try {
+      return new Date(`${d}T00:00:00`).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+    } catch {
+      return d;
+    }
+  };
+  useEffect(() => { if (!user?.has_shaggyowl) { setLoading(false); return; } API.get('/api/courses/schedule').then(d => setDays(d)).catch(()=>{}).finally(() => setLoading(false)); }, [user]);
+  if (!user?.has_shaggyowl) return <div className="empty-state"><div className="empty-state-icon">🔑</div><div className="empty-state-text">Configura le credenziali nella tab "Regole" per vedere il palinsesto.</div></div>;
+  if (loading) return <div style={{textAlign:'center',padding:40}}><Spinner /></div>;
+  return (<div><div className="section-header"><div className="section-title">Palinsesto prossimi 8 giorni</div></div>
+    {days.map(day => (<div key={day.giorno} className="schedule-day"><div className="schedule-day-title">{day.nome_giorno} · {formatDate(day.giorno)}</div>
+      {day.corsi.map((c,i) => (<div key={i} className={`schedule-slot ${c.utente_prenotato?'booked':''} ${c.posti_disponibili===0&&!c.utente_prenotato?'full':''}`}>
+        <div className="schedule-slot-color" style={{background:c.color}} /><div className="schedule-slot-time">{c.orario_inizio}–{c.orario_fine}</div>
+        <div className="schedule-slot-name">{c.nome_corso}</div><div className="schedule-slot-status">{c.utente_prenotato ? '✓ Prenotato' : c.frase}</div>
+      </div>))}</div>))}</div>);
+}
+
+// ─── Logs Tab ───────────────────────────────────────────────────────────────
+
+function LogsTab() {
+  const [logs, setLogs] = useState([]); const [loading, setLoading] = useState(true);
+  useEffect(() => { API.get('/api/logs/?limit=31').then(l => setLogs(l)).catch(()=>{}).finally(() => setLoading(false)); }, []);
+  if (loading) return <div style={{textAlign:'center',padding:40}}><Spinner /></div>;
+  return (<div><div className="section-header"><div className="section-title">Storico prenotazioni</div></div>
+    {logs.length === 0 ? <div className="empty-state"><div className="empty-state-icon">📄</div><div className="empty-state-text">Nessuna attività registrata.</div></div>
+    : <div className="card" style={{padding:16}}>{logs.map(l => (
+      <div key={l.id} className="log-entry"><div className={`log-icon ${l.status}`}>{LOG_ICONS[l.status]||'?'}</div>
+        <div className="log-info"><div className="log-course">{l.course_name}</div><div className="log-detail">{l.course_date} · {l.course_time} — {l.message||l.status}</div></div>
+        <div className="log-time">{new Date(l.created_at).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div></div>
+    ))}</div>}</div>);
+}
+
+// ─── Admin Tab ──────────────────────────────────────────────────────────────
+
+function AdminTab() {
+  const [users, setUsers] = useState([]); const [invites, setInvites] = useState([]);
+  const [loading, setLoading] = useState(true); const [triggering, setTriggering] = useState(false);
+  const [msg, setMsg] = useState(''); const [newInvite, setNewInvite] = useState(null);
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
+
+  const load = async () => { try { setUsers(await API.get('/api/admin/users')); setInvites(await API.get('/api/admin/invites')); } catch {} setLoading(false); };
+  useEffect(() => { load(); }, []);
+
+  const triggerBooking = async () => { setTriggering(true); setMsg(''); try { await API.post('/api/admin/trigger-booking'); setMsg('Ciclo completato!'); setTimeout(() => setMsg(''),5000); } catch (e) { setMsg('Errore: '+e.message); } setTriggering(false); };
+  const toggleUser = async id => { await API.put(`/api/admin/users/${id}/toggle-active`); load(); };
+  const deleteUser = async () => { if (!confirmDeleteUser) return; try { await API.del(`/api/admin/users/${confirmDeleteUser.id}`); setConfirmDeleteUser(null); load(); setMsg('Utente eliminato'); setTimeout(()=>setMsg(''),3000); } catch (e) { setMsg('Errore: '+e.message); setConfirmDeleteUser(null); } };
+  const createInvite = async () => { try { setNewInvite(await API.post('/api/admin/invites')); load(); } catch (e) { setMsg('Errore: '+e.message); } };
+  const revokeInvite = async (id) => { try { await API.del(`/api/admin/invites/${id}`); load(); setMsg('Codice revocato'); setTimeout(()=>setMsg(''),3000); } catch (e) { setMsg('Errore: '+e.message); } };
+  const [confirmRevoke, setConfirmRevoke] = useState(null);
+
+  if (loading) return <div style={{textAlign:'center',padding:40}}><Spinner /></div>;
+  return (<div>
+    {msg && <Alert type={msg.startsWith('Errore')?'error':'success'}>{msg}</Alert>}
+    <div className="section-header"><div className="section-title">Utenti</div>
+      <div style={{display:'flex',gap:8}}><button className="btn btn-primary btn-sm" onClick={createInvite}>+ Invita</button>
+      <button className="btn btn-secondary btn-sm" onClick={triggerBooking} disabled={triggering}>{triggering ? <><Spinner/> Esecuzione...</> : '▶ Esegui ora'}</button></div></div>
+
+    {newInvite && <div className="modal-backdrop" onClick={() => setNewInvite(null)}><div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth:380}}>
+      <div className="modal-title">Codice invito</div>
+      <div className="invite-code-box"><code>{newInvite.code}</code><div className="expire">Scade tra {newInvite.expires_in_minutes} minuti</div></div>
+      <p style={{fontSize:13,color:'var(--text-muted)',marginTop:12}}>Condividi questo codice con l'utente.</p>
+      <div className="modal-actions"><button className="btn btn-primary btn-sm" onClick={() => { navigator.clipboard.writeText(newInvite.code); }}>Copia</button>
+      <button className="btn btn-secondary btn-sm" onClick={() => setNewInvite(null)}>Chiudi</button></div>
+    </div></div>}
+
+    <div style={{marginBottom:24}}>{users.map(u => (
+      <div key={u.id} className="rule-card">
+        <div className="rule-color" style={{background: u.is_active ? 'var(--success)' : 'var(--error)'}} />
+        <div className="rule-info"><div className="rule-course">{u.username}{u.is_admin && <span style={{fontSize:11,color:'var(--accent)',marginLeft:8}}>ADMIN</span>}</div>
+          <div className="rule-schedule">{u.rules_count} regole · {u.has_shaggyowl ? 'Opus Gym ✓' : 'Opus Gym ✗'}</div></div>
+        <div className="rule-actions"><button className={`rule-toggle ${u.is_active?'on':'off'}`} onClick={() => toggleUser(u.id)} />
+          {!u.is_admin && <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDeleteUser(u)} style={{color:'var(--error)'}}>✕</button>}</div>
+      </div>))}</div>
+
+    {invites.length > 0 && <><div className="section-header"><div className="section-title" style={{fontSize:14}}>Codici invito</div></div>
+      {invites.map(inv => (<div key={inv.id} className="invite-item">
+        <code style={{flex:1,color:inv.is_valid?'var(--accent)':'var(--text-dim)'}}>{inv.code}</code>
+        {inv.is_used && <span style={{fontSize:12,color:'var(--text-muted)'}}>→ {inv.used_by_username}</span>}
+        <span className={`invite-status ${inv.is_valid?'valid':inv.is_used?'used':'expired'}`}>{inv.is_valid?'Attivo':inv.is_used?'Usato':'Scaduto'}</span>
+        {inv.is_valid && <button className="btn btn-ghost btn-sm" onClick={() => setConfirmRevoke(inv)} style={{color:'var(--error)',padding:'4px 8px'}} title="Revoca">✕</button>}
+      </div>))}</>}
+
+    {confirmRevoke && <ConfirmModal title="Revoca codice" message={`Vuoi revocare il codice "${confirmRevoke.code}"? Non potrà più essere usato per registrarsi.`}
+      confirmLabel="Revoca" confirmDanger onConfirm={async () => { await revokeInvite(confirmRevoke.id); setConfirmRevoke(null); }} onCancel={() => setConfirmRevoke(null)} />}
+
+    {confirmDeleteUser && <ConfirmModal title="Elimina utente" message={`Eliminare "${confirmDeleteUser.username}" e tutti i suoi dati?`}
+      confirmLabel="Elimina" confirmDanger onConfirm={deleteUser} onCancel={() => setConfirmDeleteUser(null)} />}
+  </div>);
+}
+
+// ─── Main ───────────────────────────────────────────────────────────────────
+
+function Dashboard() {
+  const { user, logout } = useContext(AuthContext);
+  const [tab, setTab] = useState('rules'); const [showLogout, setShowLogout] = useState(false);
+  const tabs = [{id:'rules',label:'Regole'},{id:'schedule',label:'Palinsesto'},{id:'logs',label:'Attività'}];
+  if (user?.is_admin) tabs.push({id:'admin',label:'Admin'});
+  return (<div className="app-shell">
+    <div className="header"><h1>Opus<span>Gym</span> Booker</h1>
+      <div className="header-actions"><span className="user-badge">{user?.username}</span>
+      <button className="btn btn-ghost btn-sm btn-logout" onClick={() => setShowLogout(true)}><LogoutIcon /> Esci</button></div></div>
+    <div className="nav-tabs">{tabs.map(t => <button key={t.id} className={`nav-tab ${tab===t.id?'active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>)}</div>
+    {tab==='rules' && <RulesTab />}{tab==='schedule' && <ScheduleTab />}{tab==='logs' && <LogsTab />}{tab==='admin' && <AdminTab />}
+    {showLogout && <ConfirmModal title="Esci" message="Vuoi uscire dal tuo account?" confirmLabel="Esci" onConfirm={logout} onCancel={() => setShowLogout(false)} />}
+  </div>);
+}
+
+function App() { const { user, loading } = useContext(AuthContext);
+  if (loading) return <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}><Spinner /></div>;
+  return user ? <Dashboard /> : <AuthPage />;
+}
+ReactDOM.render(<AuthProvider><App /></AuthProvider>, document.getElementById('root'));
+</script>
+</body>
+</html>
