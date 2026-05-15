@@ -1,11 +1,15 @@
 """Entry point dell'applicazione FastAPI."""
 
+import gc
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+
+# GC più aggressivo per ambienti con poca RAM
+gc.set_threshold(300, 10, 10)
 from app.config import settings
 from app.database import init_db
 from app.api import auth, rules, logs, courses, admin
@@ -53,7 +57,7 @@ FRONTEND_PATH = Path(__file__).parent.parent / "frontend" / "index.html"
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
     if FRONTEND_PATH.exists():
-        return HTMLResponse(FRONTEND_PATH.read_text(encoding="utf-8"))
+        return FileResponse(FRONTEND_PATH)
     return HTMLResponse("<h1>Frontend non trovato</h1>")
 
 

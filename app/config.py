@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     SHAGGYOWL_BASE_URL: str = "https://app.shaggyowl.com/funzioniapp/v407"
     CORS_ORIGINS: str = "https://gym.baize.dev,http://127.0.0.1:3001,http://localhost:3001"
+    LOG_RETENTION_DAYS: int = 90
+    SESSION_TTL_HOURS: int = 24
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

@@ -1,4 +1,5 @@
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from threading import Lock
 from passlib.context import CryptContext
@@ -8,9 +9,10 @@ from app.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Token blacklist: jti → scadenza. Pulita ad ogni accesso.
-_blacklist: dict[str, datetime] = {}
+# Token blacklist: jti → scadenza. OrderedDict per eviction FIFO a dimensione massima.
+_blacklist: OrderedDict[str, datetime] = OrderedDict()
 _blacklist_lock = Lock()
+_MAX_BLACKLIST_SIZE = 10_000
 
 
 def hash_password(password: str) -> str:
@@ -34,6 +36,9 @@ def blacklist_token(jti: str, expires_at: datetime) -> None:
         expired = [k for k, v in _blacklist.items() if v <= now]
         for k in expired:
             del _blacklist[k]
+        # Eviction FIFO se si supera la dimensione massima
+        while len(_blacklist) > _MAX_BLACKLIST_SIZE:
+            _blacklist.popitem(last=False)
 
 
 def decode_access_token(token: str) -> dict | None:
