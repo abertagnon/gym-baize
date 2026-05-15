@@ -101,7 +101,7 @@ async def get_profile(user: User = Depends(get_current_user)):
     )
 
 
-@router.put("/shaggyowl-credentials")
+@router.put("/shaggyowl-account")
 async def set_shaggyowl_credentials(
     creds: ShaggyOwlCredentials,
     user: User = Depends(get_current_user),
