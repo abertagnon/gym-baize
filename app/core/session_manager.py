@@ -61,6 +61,21 @@ async def close_session(user_id: int):
         log.info(f"[user:{user_id}] Sessione ShaggyOwl chiusa")
 
 
+async def replace_session(user_id: int, session: ShaggyOwlSession, client: ShaggyOwlClient):
+    """Sostituisce la sessione in memoria con una sessione già validata."""
+    async with _lock:
+        old_entry = _sessions.pop(user_id, None)
+        _sessions[user_id] = (session, client, datetime.now(timezone.utc))
+
+    if old_entry:
+        old_session, old_client, _ = old_entry
+        try:
+            await old_client.logout(old_session)
+        except Exception:
+            pass
+    log.info(f"[user:{user_id}] Sessione ShaggyOwl sostituita — {session.nome_utente}")
+
+
 async def close_all():
     """Chiude tutte le sessioni (shutdown dell'app)."""
     async with _lock:

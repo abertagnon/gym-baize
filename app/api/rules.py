@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import User, BookingRule, BookingRuleBlackout, BookingDateRule
 from app.api.deps import get_current_user
 from app.core.security import encrypt_credential
+from app.core.shaggyowl import ShaggyOwlClient, ShaggyOwlError
 
 router = APIRouter(prefix="/api/rules", tags=["rules"])
 
@@ -107,10 +108,7 @@ async def set_shaggyowl_credentials(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    from app.core.session_manager import close_session, get_session
-
-    # Chiudi eventuale sessione vecchia
-    await close_session(user.id)
+    from app.core.session_manager import replace_session
 
     try:
         encrypted_password = encrypt_credential(creds.shaggyowl_password)
@@ -120,15 +118,36 @@ async def set_shaggyowl_credentials(
             detail="ENCRYPTION_KEY non valida: genera una chiave Fernet e aggiornala nel file .env",
         )
 
+    client = ShaggyOwlClient()
+    session = None
+    try:
+        session = await client.login(creds.shaggyowl_email, creds.shaggyowl_password)
+        await client.seleziona_sede(session)
+    except ShaggyOwlError as e:
+        if session:
+            await client.logout(session)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Credenziali Opus Gym non valide o sessione non creabile: {e}",
+        )
+    except Exception:
+        if session:
+            await client.logout(session)
+        raise HTTPException(
+            status_code=502,
+            detail="Impossibile verificare le credenziali Opus Gym. Riprova più tardi.",
+        )
+
     user.shaggyowl_email = creds.shaggyowl_email
     user.shaggyowl_password_encrypted = encrypted_password
-    db.commit()
-
-    # Apri subito la sessione ShaggyOwl
     try:
-        await get_session(user.id, creds.shaggyowl_email, user.shaggyowl_password_encrypted)
-    except Exception as e:
-        return {"ok": True, "message": f"Credenziali salvate, ma login ShaggyOwl fallito: {e}"}
+        db.commit()
+    except Exception:
+        db.rollback()
+        await client.logout(session)
+        raise
+
+    await replace_session(user.id, session, client)
 
     return {"ok": True, "message": "Credenziali salvate e sessione attiva"}
 
