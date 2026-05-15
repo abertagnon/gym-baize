@@ -26,6 +26,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn-danger{background:var(--error-bg);color:var(--error);border:1px solid rgba(248,113,113,0.2)}.btn-danger:hover{background:rgba(248,113,113,0.2)}
 .btn-sm{padding:6px 12px;font-size:13px}.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important}
 .btn-logout svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rule-actions svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .form-group{margin-bottom:16px}
 .form-label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em}
 .form-input,.form-select{width:100%;padding:11px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:14px;transition:border-color var(--transition);outline:none}
@@ -70,7 +71,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .alert-success{background:var(--success-bg);color:var(--success);border:1px solid rgba(52,211,153,0.2)}
 .alert-info{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(238,186,43,0.25)}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;backdrop-filter:blur(4px)}
-.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:460px;box-shadow:var(--shadow);animation:modalIn 0.2s ease}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:460px;box-shadow:var(--shadow);animation:modalIn 0.2s ease;overflow-x:hidden}
 @keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(8px)}}
 .modal-title{font-size:18px;font-weight:700;margin-bottom:20px;letter-spacing:-0.02em}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:24px}
@@ -97,7 +98,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .mini-tab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font);transition:all var(--transition)}
 .mini-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .mini-tab:not(.active):hover{color:var(--text)}
-@media(max-width:600px){.app-shell{padding:16px 12px}.form-row{grid-template-columns:1fr}.header h1{font-size:17px}.nav-tab{font-size:12px;padding:8px 10px}.form-input,.form-select{font-size:16px}input[type="date"],input[type="time"]{min-width:0;max-width:100%;width:100%}.rule-actions .btn-ghost{padding:11px 14px;font-size:17px;min-width:44px;min-height:44px;justify-content:center}}
+@media(max-width:600px){.app-shell{padding:16px 12px}.form-row{grid-template-columns:1fr}.header h1{font-size:17px}.nav-tab{font-size:12px;padding:8px 10px}.form-input,.form-select{font-size:16px}input[type="date"],input[type="time"]{min-width:0;max-width:100%;width:100%}.rule-actions .btn-ghost{padding:8px;min-width:44px;min-height:44px;justify-content:center}.rule-actions svg{width:19px;height:19px}.modal{max-height:calc(100vh - 48px);overflow-y:auto}}
 </style>
 </head>
 <body>
@@ -107,6 +108,12 @@ const { useState, useEffect, useCallback, createContext, useContext } = React;
 
 function LogoutIcon() {
   return <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+}
+function EditIcon() {
+  return <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+}
+function XIcon() {
+  return <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 }
 
 function ConfirmModal({ title, message, confirmLabel, confirmDanger, onConfirm, onCancel }) {
@@ -531,8 +538,8 @@ function RulesTab() {
           <div className="rule-schedule">{r.day_name} · {r.start_time}{r.join_waitlist && <span className="rule-badge waitlist" style={{marginLeft:8}}>+ coda</span>}</div></div>
         <div className="rule-actions">
           <button className={`rule-toggle ${r.is_active?'on':'off'}`} onClick={() => toggleRule(r)} />
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowRule(r)}>✎</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete({type:'rule',item:r})} style={{color:'var(--error)'}}>✕</button></div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowRule(r)}><EditIcon /></button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete({type:'rule',item:r})} style={{color:'var(--error)'}}><XIcon /></button></div>
       </div>))}
 
     {!needsCreds && <div className="subsection-header"><div className="subsection-title">Prenotazioni giornaliere</div>
@@ -545,8 +552,8 @@ function RulesTab() {
           <div className="rule-schedule">{formatDateLabel(r.course_date)} · {r.start_time}{r.join_waitlist && <span className="rule-badge waitlist" style={{marginLeft:8}}>+ coda</span>}{r.expired && <span className="rule-badge expired" style={{marginLeft:8}}>scaduta</span>}</div></div>
         <div className="rule-actions">
           <button className={`rule-toggle ${r.is_active&&!r.expired?'on':'off'}`} onClick={() => toggleDateRule(r)} disabled={r.expired} />
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowDateRule(r)}>✎</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete({type:'dateRule',item:r})} style={{color:'var(--error)'}}>✕</button></div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowDateRule(r)}><EditIcon /></button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete({type:'dateRule',item:r})} style={{color:'var(--error)'}}><XIcon /></button></div>
       </div>))}
 
     {!needsCreds && <div className="subsection-header"><div className="subsection-title">Sospensioni</div>
@@ -558,8 +565,8 @@ function RulesTab() {
         <div className="rule-info"><div className="rule-course">Regole sospese</div>
           <div className="rule-schedule">{formatDateLabel(b.start_date)} · {formatDateLabel(b.end_date)}</div></div>
         <div className="rule-actions">
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowBlackout(b)}>✎</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete({type:'blackout',item:b})} style={{color:'var(--error)'}}>✕</button></div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowBlackout(b)}><EditIcon /></button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete({type:'blackout',item:b})} style={{color:'var(--error)'}}><XIcon /></button></div>
       </div>))}
 
     {showCreds && <CredentialsModal onClose={() => setShowCreds(false)}
